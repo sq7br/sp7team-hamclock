@@ -143,5 +143,28 @@ Prezentuje warunki propagacyjne dla pasm KF na podstawie danych z `hamqsl.com`. 
 Wyświetla listę 10 ostatnich odczytów pozycji dla sond radiosonde wykrytych w zdefiniowanym w konfiguracji promieniu. Dane pochodzą z `api.v2.sondehub.org`. Tabela zawiera: identyfikator sondy, wysokość (w metrach), szerokość i długość geograficzną oraz czas od ostatniego odczytu.
 
 
+# Rozwiązywanie problemów
+
+### Urządzenie nie uruchamia się lub ekran jest pusty
+- **Sprawdź zasilanie:** Upewnij się, że używasz kabla USB, który przesyła dane, a nie tylko ładuje.
+- **Poprawność wgrania:** Zweryfikuj, czy wszystkie pliki binarne (`bootloader`, `partitions`, `firmware`, `spiffs`) zostały wgrane na poprawne adresy (offsety).
+
+### Po skonfigurowaniu WiFi urządzenie nie łączy się z siecią
+- **Poprawność danych:** Sprawdź, czy SSID i hasło są na pewno poprawne (wielkość liter ma znaczenie).
+- **Pasmo 2.4 GHz:** Upewnij się, że Twoja sieć WiFi działa w paśmie 2.4 GHz. Moduły ESP32 nie obsługują pasma 5 GHz.
+- **Wymuszenie trybu AP:** Jeśli chcesz wrócić do ekranu konfiguracji, najprostszym sposobem jest wgranie obrazu SPIFFS (pliku `spiffs.bin`) ponownie, ale tym razem upewniając się, że w folderze `data` nie ma pliku `config.json`. Po wgraniu pustego systemu plików, urządzenie uruchomi się w trybie AP.
+
+### Dane na ekranie (POTA, WWFF, etc.) nie aktualizują się
+- **Połączenie z internetem:** Sprawdź, czy w prawym górnym rogu ekranu wyświetla się adres IP. Jego brak oznacza problem z połączeniem WiFi.
+- **Logi w konsoli:** Podłącz urządzenie do komputera i otwórz Monitor portu szeregowego (np. w PlatformIO lub Arduino IDE). Zobaczysz tam szczegółowe logi, w tym ewentualne błędy pobierania danych z API (np. `HTTP fetch failed`).
+
+### Dane APRS nie pojawiają się lub są niekompletne
+- **Wymagany Passcode:** Do połączenia z siecią APRS-IS i pobierania danych **wymagane jest podanie znaku oraz poprawnego kodu (passcode)** w konfiguracji webowej.
+- **Filtr:** Domyślnie oprogramowanie filtruje stacje z prefiksem `SP` (Polska).
+
+### Ekran dotykowy nie reaguje lub działa nieprawidłowo
+- **Wersja sprzętowa:** Upewnij się, że używasz oprogramowania przeznaczonego dla Twojej płytki (ESP32-2432S028R). Różne wersje sprzętowe mogą mieć inaczej podłączony kontroler dotyku.
+
+
 # Licencja
 Projekt jest udostępniony na licencji MIT. Zobacz plik LICENSE po szczegóły.
