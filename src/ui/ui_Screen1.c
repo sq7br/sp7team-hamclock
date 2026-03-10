@@ -11,6 +11,8 @@ lv_obj_t * uic_propa;
 lv_obj_t * uic_aprs;
 lv_obj_t * uic_wwff;
 lv_obj_t * uic_pota;
+lv_obj_t * uic_label_utc;
+lv_obj_t * uic_new_version;
 lv_obj_t * uic_label_sonde_data;
 lv_obj_t * uic_label_wwff_data;
 lv_obj_t * uic_label_pota_data;
@@ -32,6 +34,12 @@ lv_obj_t * ui_Label5 = NULL;
 lv_obj_t * ui_Label6 = NULL;
 lv_obj_t * ui_Label7 = NULL;
 lv_obj_t * ui_Label8 = NULL;
+lv_obj_t * ui_Label9 = NULL;
+lv_obj_t * ui_Label10 = NULL;
+lv_obj_t * ui_Label11 = NULL;
+lv_obj_t * ui_Label12 = NULL;
+lv_obj_t * ui_Label13 = NULL;
+lv_obj_t * ui_Label14 = NULL;
 lv_obj_t * ui_TabPage2 = NULL;
 lv_obj_t * ui_TabPage3 = NULL;
 lv_obj_t * ui_TabPage4 = NULL;
@@ -51,15 +59,16 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_TabView1, lv_pct(100));
     lv_obj_set_height(ui_TabView1, lv_pct(100));
     lv_obj_set_align(ui_TabView1, LV_ALIGN_CENTER);
-    lv_obj_set_style_text_font(ui_TabView1, &lv_font_montserrat_8, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_TabView1, &lv_font_montserrat_10, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_TabPage1 = lv_tabview_add_tab(ui_TabView1, "Main");
+    lv_obj_clear_flag(ui_TabPage1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_Label1 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label1, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label1, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label1, 4);
-    lv_obj_set_y(ui_Label1, -79);
+    lv_obj_set_x(ui_Label1, 6);
+    lv_obj_set_y(ui_Label1, -63);
     lv_obj_set_align(ui_Label1, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label1, "SQ5PGC");
     lv_obj_set_style_text_color(ui_Label1, lv_color_hex(0x090808), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -69,7 +78,7 @@ void ui_Screen1_screen_init(void)
     ui_Label2 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label2, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label2, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label2, 9);
+    lv_obj_set_x(ui_Label2, 0);
     lv_obj_set_y(ui_Label2, -9);
     lv_obj_set_align(ui_Label2, LV_ALIGN_TOP_RIGHT);
     lv_label_set_text(ui_Label2, "255.255.255.255");
@@ -78,19 +87,20 @@ void ui_Screen1_screen_init(void)
     ui_Label3 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label3, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label3, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label3, 2);
-    lv_obj_set_y(ui_Label3, -36);
-    lv_obj_set_align(ui_Label3, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label3, "00:00:00 UTC");
-    lv_obj_set_style_text_color(ui_Label3, lv_color_hex(0x808080), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_x(ui_Label3, 53);
+    lv_obj_set_y(ui_Label3, -17);
+    lv_obj_set_align(ui_Label3, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_Label3, "00:00:00");
+    lv_obj_set_style_text_color(ui_Label3, lv_color_hex(0xBB3333), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_Label3, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui_Label3, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_Label3, &lv_font_montserrat_44, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Label4 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label4, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label4, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label4, -8);
-    lv_obj_set_y(ui_Label4, 5);
+    lv_obj_set_x(ui_Label4, -1);
+    lv_obj_set_y(ui_Label4, 26);
     lv_obj_set_align(ui_Label4, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label4, "Poniedzialek, 01-01-2026");
     lv_obj_set_style_text_font(ui_Label4, &lv_font_montserrat_16, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -98,33 +108,82 @@ void ui_Screen1_screen_init(void)
     ui_Label5 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label5, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label5, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label5, 0);
-    lv_obj_set_y(ui_Label5, 26);
+    lv_obj_set_x(ui_Label5, 39);
+    lv_obj_set_y(ui_Label5, 52);
     lv_obj_set_align(ui_Label5, LV_ALIGN_LEFT_MID);
     lv_label_set_text(ui_Label5, "APRS");
 
     ui_Label6 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label6, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label6, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label6, 0);
-    lv_obj_set_y(ui_Label6, 41);
+    lv_obj_set_x(ui_Label6, 38);
+    lv_obj_set_y(ui_Label6, 64);
     lv_obj_set_align(ui_Label6, LV_ALIGN_LEFT_MID);
     lv_label_set_text(ui_Label6, "POTA");
 
     ui_Label7 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label7, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label7, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label7, 0);
-    lv_obj_set_y(ui_Label7, 58);
+    lv_obj_set_x(ui_Label7, 37);
+    lv_obj_set_y(ui_Label7, 78);
     lv_obj_set_align(ui_Label7, LV_ALIGN_LEFT_MID);
     lv_label_set_text(ui_Label7, "WWFF");
 
     ui_Label8 = lv_label_create(ui_TabPage1);
     lv_obj_set_width(ui_Label8, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label8, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label8, 0);
-    lv_obj_set_y(ui_Label8, 162);
+    lv_obj_set_x(ui_Label8, 38);
+    lv_obj_set_y(ui_Label8, 179);
     lv_label_set_text(ui_Label8, "SONDA");
+
+    ui_Label9 = lv_label_create(ui_TabPage1);
+    lv_obj_set_width(ui_Label9, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label9, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label9, 231);
+    lv_obj_set_y(ui_Label9, 8);
+    lv_label_set_text(ui_Label9, "");
+    lv_obj_set_style_text_color(ui_Label9, lv_color_hex(0xF10726), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_Label9, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label10 = lv_label_create(ui_TabPage1);
+    lv_obj_set_width(ui_Label10, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label10, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label10, 119);
+    lv_obj_set_y(ui_Label10, -15);
+    lv_obj_set_align(ui_Label10, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label10, "UTC");
+    lv_obj_set_style_text_color(ui_Label10, lv_color_hex(0x0F157C), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_Label10, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_Label10, &lv_font_montserrat_16, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label11 = lv_label_create(ui_TabPage1);
+    lv_obj_set_width(ui_Label11, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label11, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label11, -144);
+    lv_obj_set_y(ui_Label11, 140);
+    lv_obj_set_align(ui_Label11, LV_ALIGN_TOP_MID);
+    lv_label_set_text(ui_Label11, "APRS");
+
+    ui_Label12 = lv_label_create(ui_TabPage1);
+    lv_obj_set_width(ui_Label12, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label12, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label12, -10);
+    lv_obj_set_y(ui_Label12, 153);
+    lv_label_set_text(ui_Label12, "POTA");
+
+    ui_Label13 = lv_label_create(ui_TabPage1);
+    lv_obj_set_width(ui_Label13, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label13, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label13, -9);
+    lv_obj_set_y(ui_Label13, 166);
+    lv_label_set_text(ui_Label13, "WWFF");
+
+    ui_Label14 = lv_label_create(ui_TabPage1);
+    lv_obj_set_width(ui_Label14, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label14, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label14, -9);
+    lv_obj_set_y(ui_Label14, 180);
+    lv_label_set_text(ui_Label14, "SONDA");
 
     ui_TabPage2 = lv_tabview_add_tab(ui_TabView1, "POTA");
 
@@ -148,6 +207,8 @@ void ui_Screen1_screen_init(void)
     uic_label_pota_data = ui_Label6;
     uic_label_wwff_data = ui_Label7;
     uic_label_sonde_data = ui_Label8;
+    uic_new_version = ui_Label9;
+    uic_label_utc = ui_Label10;
     uic_pota = ui_TabPage2;
     uic_wwff = ui_TabPage3;
     uic_aprs = ui_TabPage4;
@@ -183,6 +244,14 @@ void ui_Screen1_screen_destroy(void)
     ui_Label7 = NULL;
     uic_label_sonde_data = NULL;
     ui_Label8 = NULL;
+    uic_new_version = NULL;
+    ui_Label9 = NULL;
+    uic_label_utc = NULL;
+    ui_Label10 = NULL;
+    ui_Label11 = NULL;
+    ui_Label12 = NULL;
+    ui_Label13 = NULL;
+    ui_Label14 = NULL;
     uic_pota = NULL;
     ui_TabPage2 = NULL;
     uic_wwff = NULL;

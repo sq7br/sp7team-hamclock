@@ -24,6 +24,12 @@ extern lv_obj_t * ui_Label5;
 extern lv_obj_t * ui_Label6;
 extern lv_obj_t * ui_Label7;
 extern lv_obj_t * ui_Label8;
+extern lv_obj_t * ui_Label9;
+extern lv_obj_t * ui_Label10;
+extern lv_obj_t * ui_Label11;
+extern lv_obj_t * ui_Label12;
+extern lv_obj_t * ui_Label13;
+extern lv_obj_t * ui_Label14;
 extern lv_obj_t * ui_TabPage2;
 extern lv_obj_t * ui_TabPage3;
 extern lv_obj_t * ui_TabPage4;
@@ -41,11 +47,13 @@ extern lv_obj_t * uic_label_aprs_data;
 extern lv_obj_t * uic_label_pota_data;
 extern lv_obj_t * uic_label_wwff_data;
 extern lv_obj_t * uic_label_sonde_data;
+extern lv_obj_t * uic_new_version;
+extern lv_obj_t * uic_label_utc;
 extern lv_obj_t * uic_pota;
 extern lv_obj_t * uic_wwff;
 extern lv_obj_t * uic_aprs;
 extern lv_obj_t * uic_propa;
-extern lv_obj_t * uic_sonde;
+extern lv_obj_t * uic_sondy;
 extern lv_obj_t * uic_konf;
 
 #ifdef __cplusplus
