@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SP7 HamClock Config</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; max-width: 450px; margin: 0 auto; padding: 20px; background: #222; color: #fff; }
+    h2 { text-align: center; color: #0af; }
+    label { display: block; margin-top: 10px; }
+    input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border-radius: 4px; border: 1px solid #555; background: #333; color: #fff; }
+    select { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border-radius: 4px; border: 1px solid #555; background: #333; color: #fff; }
+    input[type=submit] { background-color: #0af; color: #000; font-weight: bold; margin-top: 0; border: none; padding: 12px; cursor: pointer; width: 100%; }
+    input[type=submit]:hover { background-color: #08d; }
+    fieldset { border: 1px solid #444; border-radius: 5px; margin-bottom: 15px; padding: 10px; }
+    legend { color: #0af; font-weight: bold; padding: 0 5px; }
+    .btn-group { margin-top: 20px; display: flex; gap: 10px; }
+    .btn-cancel { background-color: #555; color: #fff; text-decoration: none; padding: 12px; border-radius: 4px; text-align: center; flex: 1; font-weight: bold; display: block; box-sizing: border-box; }
+    .btn-cancel:hover { background-color: #666; }
+  </style>
+</head>
+<body>
+  <h2>Konfiguracja</h2>
+  <form action="/save" method="POST">
+    <fieldset>
+      <legend>WiFi</legend>
+      <label>WiFi SSID:</label>
+      <input type="text" name="ssid" id="ssid" placeholder="Nazwa sieci">
+      <label>WiFi Haslo:</label>
+      <input type="password" name="pass" id="pass" placeholder="Haslo">
+    </fieldset>
+
+    <fieldset>
+      <legend>APRS</legend>
+      <label>Znak APRS (np. SP7XYZ):</label>
+      <input type="text" name="aprs_callsign" id="aprs_callsign" placeholder="NOCALL">
+      <label>Passcode APRS:</label>
+      <input type="text" name="aprs_pass" id="aprs_pass" placeholder="Kod z aprs.fi">
+    </fieldset>
+
+    <fieldset>
+      <legend>POTA</legend>
+      <label>Filtr POTA (kraje):</label>
+      <input type="text" name="filter" id="filter" placeholder="PL,UA,RO">
+      <label>Interwal POTA (sekundy):</label>
+      <input type="number" name="pota_interval" id="pota_interval" placeholder="60">
+    </fieldset>
+
+    <fieldset>
+      <legend>WWFF</legend>
+      <label>Interwal WWFF (sekundy):</label>
+      <input type="number" name="wwff_interval" id="wwff_interval" placeholder="60">
+    </fieldset>
+
+    <fieldset>
+      <legend>SondeHub</legend>
+      <label>Interwal SondeHub (sekundy):</label>
+      <input type="number" name="sonde_interval" id="sonde_interval" placeholder="30" >
+      <label>Promien SondeHub (km):</label>
+      <input type="number" name="sonde_radius" id="sonde_radius" placeholder="100">
+    </fieldset>
+
+    <fieldset>
+      <legend>Lokalizacja i Czas</legend>
+      <label>Twoja szerokosc (Lat):</label>
+      <input type="text" name="lat" id="lat" placeholder="51.3528">
+      <label>Twoja dlugosc (Lon):</label>
+      <input type="text" name="lon" id="lon" placeholder="19.8847">
+      <label>Czas:</label>
+      <select name="show_utc" id="show_utc">
+        <option value="1">UTC</option>
+        <option value="0">Lokalny (PL)</option>
+      </select>
+    </fieldset>
+
+    <div class="btn-group">
+      <a href="/" class="btn-cancel">Anuluj</a>
+      <div style="flex: 1;"><input type="submit" value="Zapisz i Restart"></div>
+    </div>
+  </form>
+  <script>
+    fetch('/read_config').then(r=>r.json()).then(d=>{
+      for(let k in d) if(document.getElementById(k)) {
+        if(k==='show_utc') document.getElementById(k).value = d[k] ? 1 : 0;
+        else document.getElementById(k).value=d[k];
+      }
+    }).catch(e=>console.log(e));
+  </script>
+</body>
+</html>

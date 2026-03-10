@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SP7 HamClock Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; background: #222; color: #fff; margin: 0 auto; padding: 20px; max-width: 800px; }
+    h1 { text-align: center; color: #0af; }
+    .tabs { overflow: hidden; border-bottom: 1px solid #444; margin-bottom: 20px; }
+    .tabs button { background-color: #333; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; color: #fff; transition: 0.3s; font-size: 16px; }
+    .tabs button:hover { background-color: #444; }
+    .tabs button.active { background-color: #0af; color: #000; font-weight: bold; }
+    .tabcontent { display: none; animation: fadeEffect 0.5s; }
+    @keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #444; }
+    th { background-color: #333; color: #0af; }
+    tr:hover { background-color: #333; }
+    .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #777; }
+    a { color: #0af; text-decoration: none; }
+    .text-right { text-align: right; }
+    .cond-Good { color: #0f0; font-weight: bold; }
+    .cond-Fair { color: #ff0; font-weight: bold; }
+    .cond-Poor { color: #f00; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>SP7 HamClock</h1>
+
+  <div class="tabs">
+    <button class="tablinks" onclick="openTab(event, 'POTA')" id="defaultOpen">POTA</button>
+    <button class="tablinks" onclick="openTab(event, 'APRS')">APRS</button>
+    <button class="tablinks" onclick="openTab(event, 'WWFF')">WWFF</button>
+    <button class="tablinks" onclick="openTab(event, 'PROP')">Propagacja</button>
+    <button class="tablinks" onclick="openTab(event, 'SONDE')">SondeHub</button>
+  </div>
+
+  <div id="POTA" class="tabcontent">
+    <h3>Ostatnie spoty POTA</h3>
+    <table id="potaTable">
+      <thead><tr><th>Kraj</th><th>Znak</th><th class="text-right">Czas</th><th>Freq</th><th>Mode</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="APRS" class="tabcontent">
+    <h3>Ostatnie pakiety APRS</h3>
+    <table id="aprsTable">
+      <thead><tr><th>Ikona</th><th>Znak</th><th class="text-right">Czas</th><th>Dystans</th><th>Komentarz</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="WWFF" class="tabcontent">
+    <h3>Ostatnie spoty WWFF</h3>
+    <table id="wwffTable">
+      <thead><tr><th>Znak</th><th>Referencja</th><th class="text-right">Czas</th><th>Freq</th><th>Mode</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="PROP" class="tabcontent">
+    <h3>Historia Propagacji</h3>
+    <table id="propBandTable" style="margin-bottom: 20px;">
+      <thead><tr><th>Pasmo</th><th>Dzien</th><th>Noc</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    
+    <table id="propTable">
+      <thead><tr><th>SFI</th><th>SN</th><th>A</th><th>K</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="SONDE" class="tabcontent">
+    <h3>SondeHub</h3>
+    <table id="sondeTable">
+      <thead><tr><th>Znak</th><th class="text-right">Czas</th><th>Alt</th><th>Lat</th><th>Lon</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <a href="/config">Konfiguracja</a>
+  </div>
+
+  <script>
+    function openTab(evt, tabName) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+      
+      fetchData(tabName);
+    }
+
+    function formatTimeAgo(seconds) {
+      if (seconds < 0) seconds = 0;
+      if (seconds < 60) return seconds + "s";
+      if (seconds < 3600) return Math.floor(seconds / 60) + "m";
+      return Math.floor(seconds / 3600) + "h";
+    }
+
+    function fetchData(type) {
+      let url = '';
+      let tableId = '';
+      
+      if(type === 'POTA') { url = '/api/pota'; tableId = 'potaTable'; }
+      else if(type === 'APRS') { url = '/api/aprs'; tableId = 'aprsTable'; }
+      else if(type === 'WWFF') { url = '/api/wwff'; tableId = 'wwffTable'; }
+      else if(type === 'PROP') { url = '/api/prop'; tableId = 'propTable'; }
+      else if(type === 'SONDE') { url = '/api/sonde'; tableId = 'sondeTable'; }
+      
+      if(url) {
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            const tbody = document.querySelector('#' + tableId + ' tbody');
+            tbody.innerHTML = '';
+            data.forEach(item => {
+              let row = '<tr>';
+              if(type === 'POTA') {
+                row += `<td>${item.country}</td><td>${item.callsign}</td><td class="text-right">${formatTimeAgo(item.time_ago)}</td><td>${item.freq}</td><td>${item.mode}</td>`;
+              } else if(type === 'WWFF') {
+                row += `<td>${item.callsign}</td><td>${item.reference}</td><td class="text-right">${formatTimeAgo(item.time_ago)}</td><td>${item.freq}</td><td>${item.mode}</td>`;
+              } else if(type === 'APRS') {
+                const sym = item.symbol || '>';
+                const tab = item.table || '/';
+                const ascii = sym.charCodeAt(0);
+
+                const spriteUrl = '/aprs-symbols.png';
+
+                const index = ascii - 33;
+                let iconHtml = '?';
+                if (index >= 0 && index < 94) {
+                    const x_pos = -(index % 16) * 24;
+                    const y_pos = -Math.floor(index / 16) * 24;
+                    iconHtml = `<div style="width:24px; height:24px; background:url(${spriteUrl}) ${x_pos}px ${y_pos}px;"></div>`;
+                }
+                const dist = item.dist ? item.dist.toFixed(1) + ' km' : '-';
+                row += `<td>${iconHtml}</td><td>${item.callsign}</td><td class="text-right">${formatTimeAgo(item.time_ago)}</td><td>${dist}</td><td>${item.comment}</td>`;
+              } else if(type === 'PROP') {
+                row += `<td>${item.sfi}</td><td>${item.sn}</td><td>${item.a}</td><td>${item.k}</td>`;
+                
+                // Wypelnij tabele warunkow tylko dla pierwszego elementu (najnowszego)
+                if (data.indexOf(item) === 0) {
+                    const tbodyBand = document.querySelector('#propBandTable tbody');
+                    tbodyBand.innerHTML = '';
+                    const addRow = (band, d, n) => {
+                        tbodyBand.innerHTML += `<tr><td>${band}</td><td class="cond-${d}">${d}</td><td class="cond-${n}">${n}</td></tr>`;
+                    };
+                    addRow("80m-40m", item.day8040, item.night8040);
+                    addRow("30m-20m", item.day3020, item.night3020);
+                    addRow("17m-15m", item.day1715, item.night1715);
+                    addRow("12m-10m", item.day1210, item.night1210);
+                }
+              } else if(type === 'SONDE') {
+                row += `<td>${item.callsign}</td><td class="text-right">${formatTimeAgo(item.time_ago)}</td><td>${item.alt}m</td><td>${item.lat}</td><td>${item.lon}</td>`;
+              }
+              row += '</tr>';
+              tbody.innerHTML += row;
+            });
+          })
+          .catch(err => console.error(err));
+      }
+    }
+
+    document.getElementById("defaultOpen").click();
+    
+    // Auto refresh active tab every 5s
+    setInterval(() => {
+      const activeBtn = document.querySelector('.tablinks.active');
+      if(activeBtn) {
+        const tabName = activeBtn.getAttribute('onclick').match(/'([^']+)'/)[1];
+        fetchData(tabName);
+      }
+    }, 5000);
+  </script>
+
+</body>
+</html>

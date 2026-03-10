@@ -1,0 +1,14 @@
+{
+  "ssid": "mysensors",
+  "pass": "tasmota12",
+  "filter": "PL,UA,RO",
+  "aprs_callsign": "SQ7BR",
+  "aprs_pass": "17905",
+  "lat": 51.3528,
+  "lon": 19.8847,
+  "pota_interval": 60,
+  "wwff_interval": 60,
+  "sonde_interval": 30,
+  "sonde_radius": 1000,
+  "show_utc": true
+}
