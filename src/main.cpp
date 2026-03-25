@@ -79,6 +79,11 @@ int currentPage = PAGE_MAIN;
 bool page_changed = true;
 
 // === DANE ===
+const String CURRENT_VERSION = "0.1"; // Aktualna wersja oprogramowania
+String latest_version_tag = "";
+bool new_version_available = false;
+lv_obj_t * uic_version_label = NULL; // Etykieta dla powiadomienia o nowej wersji
+
 struct SondeData { String callsign; float lat, lon; int alt; time_t last_seen_time = 0; };
 struct POTASpot { String country; String callsign; String freq; String mode; time_t last_seen_time = 0; };
 struct WWFFSpot { String callsign; String freq; String mode; String reference; time_t last_seen_time = 0; };
@@ -187,6 +192,8 @@ void dataTask(void *pvParameters);
 void update_main_screen_data(lv_timer_t * timer);
 void init_tables();
 void update_lists_if_needed(lv_timer_t * timer);
+void pobierzWersje();
+void update_version_label();
 
 // Callback do zmiany strefy czasowej po kliknięciu w zegar
 void on_clock_click(lv_event_t * e) {
@@ -398,7 +405,7 @@ const char config_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SP7 HamClock Config</title>
+  <title>SP7TEAM HamClock Config</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: sans-serif; max-width: 450px; margin: 0 auto; padding: 20px; background: #222; color: #fff; word-wrap: break-word; }
@@ -496,7 +503,7 @@ void handleRoot() {
     }
   }
   // Fallback jesli nie wgrano SPIFFS
-  server.send(200, "text/html", "<h1>SP7 HamClock</h1><p>Index missing (SPIFFS not uploaded?). <a href='/config'>Go to Config</a></p>");
+  server.send(200, "text/html", "<h1>SP7TEAM HamClock</h1><p>Index missing (SPIFFS not uploaded?). <a href='/config'>Go to Config</a></p>");
 }
 
 void handleConfig() {
@@ -574,7 +581,7 @@ void setup() {
   
   tft.setTextSize(2);
   tft.setCursor(0, 0);
-  tft.println("SP7 HamClock");
+  tft.println("SP7TEAM HamClock");
   tft.setTextSize(1);
   tft.println("Booting...");
 
@@ -606,6 +613,13 @@ void setup() {
   
   ui_init(); // Odkomentuj to, gdy wyeksportujesz pliki ze SquareLine Studio
 
+  // // Etykieta do powiadomień o nowej wersji
+  // uic_version_label = lv_label_create(lv_scr_act());
+  // lv_obj_set_style_text_font(uic_version_label, &lv_font_montserrat_14, 0);
+  // lv_obj_set_style_text_color(uic_version_label, lv_color_hex(0xFFD700), 0); // Złoty kolor
+  // lv_label_set_text(uic_version_label, "");
+  // lv_obj_align(uic_version_label, LV_ALIGN_TOP_RIGHT, -5, 5);
+
   // Włączamy obsługę kliknięcia dla zegara
   if (uic_clock) {
       lv_obj_add_flag(uic_clock, LV_OBJ_FLAG_CLICKABLE);
@@ -613,7 +627,8 @@ void setup() {
   }
 
   // Utworzenie timera LVGL do aktualizacji zegara i daty co sekundę
-  lv_timer_create(update_main_screen_data, 1000, NULL);
+  //lv_timer_create(update_main_screen_data, 1000, NULL);
+  lv_timer_create(update_main_screen_data, 500, NULL);
   
   // Ręczne tworzenie tabel, bo nie ma ich w Studio
   init_tables();
@@ -716,25 +731,24 @@ void setup() {
     // Uruchamiamy watek pobierania danych na rdzeniu 0 (Core 0)
     xTaskCreatePinnedToCore(dataTask, "DataTask", 10000, NULL, 1, NULL, 0);
   } else {
-    tft.setTextColor(TFT_RED, TFT_BLACK);
-    tft.println("WiFi Failed.");
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.println("Starting AP Mode...");
     Serial.println("No SSID found or connection failed, configuring AP mode");
     // start as access point for configuration
     WiFi.mode(WIFI_AP);
-    Serial.println("Calling softAP");
     String apName = "HAMCLOCK-" + String(ESP.getEfuseMac() & 0xFFFFFF, HEX);
     WiFi.softAP(apName.c_str());
-    tft.print("AP: "); tft.println(apName);
-    tft.println("IP: 192.168.4.1");
-
-    Serial.println("softAP call returned");
     Serial.println("Starting HTTP server (AP)");
     server.begin();
-    Serial.println("Server begun, showing config");
-    delay(3000); // Czas na przeczytanie danych AP
+
+    // Display configuration instructions on TFT.
+    // This screen will persist until the device is reconfigured and restarted.
     showConfigScreen();
+
+    // Halt here in config mode. Only process web server requests.
+    // This prevents the main loop() from running and overwriting the screen with LVGL.
+    while(true) {
+        server.handleClient();
+        delay(5); // Yield to prevent watchdog issues
+    }
   }
 }
 
@@ -754,6 +768,8 @@ void dataTask(void *pvParameters) {
       static unsigned long last_pota = 0;
       static unsigned long last_wwff = 0;
       static unsigned long last_sonde = 0;
+      static unsigned long last_version_check = 0;
+      static bool first_run = true;
 
       aprsLoop(); // APRS dziala w petli (non-blocking stream)
 
@@ -774,6 +790,13 @@ void dataTask(void *pvParameters) {
         pobierzSondeHub();
         last_sonde = millis();
         data_updated = true;
+      }
+
+      // Sprawdzanie nowej wersji co 4 godziny lub przy pierwszym uruchomieniu
+      if (first_run || (now - last_version_check > (4UL * 3600 * 1000))) {
+        pobierzWersje();
+        last_version_check = now;
+        first_run = false;
       }
     }
     vTaskDelay(10 / portTICK_PERIOD_MS); // Maly delay dla stabilnosci
@@ -1103,6 +1126,70 @@ void pobierzSondeHub() {
   }
 }
 
+void update_version_label() {
+    if (uic_new_version) { // Sprawdź, czy etykieta została utworzona
+        xSemaphoreTake(dataMutex, portMAX_DELAY);
+        bool is_new = new_version_available;
+        String tag = latest_version_tag;
+        xSemaphoreGive(dataMutex);
+
+        if (is_new) {
+            char buf[32];
+            snprintf(buf, sizeof(buf), "N. wer. %s", tag.c_str());
+            lv_label_set_text(uic_new_version, buf);
+        } else {
+            lv_label_set_text(uic_new_version, "");
+        }
+    }
+}
+
+void pobierzWersje() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  Serial.println("Fetching latest version info...");
+  WiFiClientSecure client;
+  client.setInsecure(); // GitHub API wymaga HTTPS
+  HTTPClient http;
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+  http.setUserAgent("SP7HamClock-ESP32-Checker");
+  
+  String url = "https://api.github.com/repos/sq7br/sp7team-hamclock/releases/latest";
+  
+  if (http.begin(client, url)) {
+    int httpCode = http.GET();
+    if (httpCode == 200) {
+      DynamicJsonDocument doc(2048);
+      deserializeJson(doc, http.getString());
+      
+      if (doc.containsKey("tag_name")) {
+        String tag = doc["tag_name"].as<String>();
+        Serial.printf("Latest version tag from GitHub: %s\n", tag.c_str());
+        
+        String clean_tag = tag;
+        if (clean_tag.startsWith("v")) {
+            clean_tag.remove(0, 1);
+        }
+
+        if (clean_tag.length() > 0 && clean_tag != CURRENT_VERSION) {
+            xSemaphoreTake(dataMutex, portMAX_DELAY);
+            latest_version_tag = tag;
+            new_version_available = true;
+            xSemaphoreGive(dataMutex);
+           
+            Serial.printf("New version available: %s (current: %s)\n", tag.c_str(), CURRENT_VERSION.c_str());
+        } else {
+            new_version_available = false;
+        }
+      }
+    } else {
+      Serial.printf("Version check failed, HTTP code: %d\n", httpCode);
+    }
+    http.end();
+  } else {
+    Serial.println("Version check: connection failed.");
+  }
+}
+
 void renderIP() {
   if (uic_IP)  lv_label_set_text(uic_IP, WiFi.localIP().toString().c_str());
 } ;
@@ -1129,10 +1216,15 @@ void update_main_screen_data(lv_timer_t * timer) {
     // --- Aktualizacja zegara ---
     char time_buf[20];
     strftime(time_buf, sizeof(time_buf), "%H:%M:%S", &timeinfo);
-    String time_str = String(time_buf) + (show_utc ? " UTC" : "");
+    String time_str = String(time_buf);
     if (uic_clock) {
       lv_label_set_text(uic_clock, time_str.c_str());
     }
+    String utc_str = show_utc ? " UTC" : "";
+    if (uic_label_utc) {
+      lv_label_set_text(uic_label_utc, utc_str.c_str());
+    }
+
     // --- Aktualizacja daty ---
     char date_buf[50];
     char mday_str[3], mon_str[3];
@@ -1213,19 +1305,20 @@ void init_tables() {
     lv_style_set_bg_color(&style_table, lv_color_hex(0x000000)); // Czarne tło
     lv_style_set_text_color(&style_table, lv_color_hex(0xFFFFFF)); // Biały tekst
     lv_style_set_border_width(&style_table, 0); // Bez ramek
+    lv_style_set_pad_column(&style_table, 2); // Zmniejszenie odstępów między kolumnami
 
     // --- POTA Table ---
     if (ui_TabPage2) {
         table_pota = lv_table_create(ui_TabPage2);
         lv_obj_add_style(table_pota, &style_table, 0);
         lv_obj_add_style(table_pota, &style_table, LV_PART_ITEMS);
-        lv_obj_set_size(table_pota, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_width(table_pota, LV_PCT(100));
         lv_table_set_col_cnt(table_pota, 5);
-        lv_table_set_col_width(table_pota, 0, 80); // Znak
-        lv_table_set_col_width(table_pota, 1, 80); // Freq
-        lv_table_set_col_width(table_pota, 2, 60); // Mode
-        lv_table_set_col_width(table_pota, 3, 60); // Loc/Kraj
-        lv_table_set_col_width(table_pota, 4, 50); // Czas
+        lv_table_set_col_width(table_pota, 0, 75); // Znak
+        lv_table_set_col_width(table_pota, 1, 70); // Freq
+        lv_table_set_col_width(table_pota, 2, 50); // Mode
+        lv_table_set_col_width(table_pota, 3, 55); // Loc/Kraj
+        lv_table_set_col_width(table_pota, 4, 40); // Czas
     }
 
     // --- WWFF Table ---
@@ -1233,13 +1326,13 @@ void init_tables() {
         table_wwff = lv_table_create(ui_TabPage3);
         lv_obj_add_style(table_wwff, &style_table, 0);
         lv_obj_add_style(table_wwff, &style_table, LV_PART_ITEMS);
-        lv_obj_set_size(table_wwff, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_width(table_wwff, LV_PCT(100));
         lv_table_set_col_cnt(table_wwff, 5);
-        lv_table_set_col_width(table_wwff, 0, 80); // Znak
-        lv_table_set_col_width(table_wwff, 1, 90); // Ref
-        lv_table_set_col_width(table_wwff, 2, 80); // Freq
-        lv_table_set_col_width(table_wwff, 3, 60); // Mode
-        lv_table_set_col_width(table_wwff, 4, 50); // Czas
+        lv_table_set_col_width(table_wwff, 0, 75); // Znak
+        lv_table_set_col_width(table_wwff, 1, 80); // Ref
+        lv_table_set_col_width(table_wwff, 2, 65); // Freq
+        lv_table_set_col_width(table_wwff, 3, 50); // Mode
+        lv_table_set_col_width(table_wwff, 4, 40); // Czas
   }
 
     // --- APRS Table ---
@@ -1248,12 +1341,14 @@ void init_tables() {
         lv_obj_add_style(table_aprs, &style_table, 0);
         lv_obj_add_style(table_aprs, &style_table, LV_PART_ITEMS);
         lv_obj_set_size(table_aprs, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_width(table_aprs, LV_PCT(100));
         lv_table_set_col_cnt(table_aprs, 5);
-        lv_table_set_col_width(table_aprs, 0, 80); // Znak
+        lv_table_set_col_width(table_aprs, 0, 75); // Znak
         lv_table_set_col_width(table_aprs, 1, 20); // Sym
-        lv_table_set_col_width(table_aprs, 2, 70); // Dist
         lv_table_set_col_width(table_aprs, 3, 20); // Comment
         lv_table_set_col_width(table_aprs, 4, 50); // Czas
+        lv_table_set_col_width(table_aprs, 3, 85); // Comment
+        lv_table_set_col_width(table_aprs, 4, 40); // Czas
     }
 
     // --- PROPA Table ---
@@ -1262,10 +1357,10 @@ void init_tables() {
         lv_obj_add_style(table_prop, &style_table, 0);
         lv_obj_add_style(table_prop, &style_table, LV_PART_ITEMS);
         lv_obj_set_size(table_prop, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_width(table_prop, LV_PCT(100));
         lv_table_set_col_cnt(table_prop, 3);
         lv_table_set_col_width(table_prop, 0, 80); // Pasmo
         lv_table_set_col_width(table_prop, 1, 80); // Dzien
-        lv_table_set_col_width(table_prop, 2, 80); // Noc
         lv_obj_add_event_cb(table_prop, table_draw_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
     }
     
@@ -1275,12 +1370,14 @@ void init_tables() {
         lv_obj_add_style(table_sonde, &style_table, 0);
         lv_obj_add_style(table_sonde, &style_table, LV_PART_ITEMS);
         lv_obj_set_size(table_sonde, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_width(table_sonde, LV_PCT(100));
         lv_table_set_col_cnt(table_sonde, 5);
         lv_table_set_col_width(table_sonde, 0, 90); // Znak
         lv_table_set_col_width(table_sonde, 1, 70); // Alt
         lv_table_set_col_width(table_sonde, 2, 80); // Lat
         lv_table_set_col_width(table_sonde, 3, 80); // Lon
         lv_table_set_col_width(table_sonde, 4, 50); // Czas
+
    }
 }
 
@@ -1454,6 +1551,13 @@ void update_lists_if_needed(lv_timer_t * timer) {
         renderData(); // To aktualizuje etykietę APRS na ekranie głównym
         aprs_updated = false;
     }
+
+    // Sprawdzanie statusu nowej wersji i aktualizacja etykiety
+    static bool last_known_version_status = false;
+    if (new_version_available != last_known_version_status) {
+        update_version_label();
+        last_known_version_status = new_version_available;
+    }
 }
 
 void splashScreen() {
@@ -1470,12 +1574,12 @@ void splashScreen() {
 
 void connectWiFi() {
   Serial.print("Connecting to WiFi SSID=`"); Serial.print(ssid); Serial.println("`...");
-  tft.print("Connecting to "); tft.println(ssid);
+  tft.print("Connecting to WiFi SSID: "); tft.println(ssid);
 
   for (int attempt = 1; attempt <= 3; attempt++) {
     if (attempt > 1) {
       tft.println();
-      tft.print("Retry "); tft.print(attempt); tft.print("/3 ");
+      tft.print("Retry "); tft.print(attempt); tft.println("/3 ");
       Serial.println();
       Serial.print("Retry "); Serial.print(attempt); Serial.println("/3 ");
       WiFi.disconnect();
@@ -1499,7 +1603,6 @@ void connectWiFi() {
     Serial.print("IP: "); Serial.println(WiFi.localIP());
   } else {
     Serial.println("WiFi connection failed");
-    // showConfigScreen();
   }
 }
 
@@ -1508,15 +1611,16 @@ void showConfigScreen() {
   tft.setTextColor(TFT_RED, TFT_BLACK);
   tft.setTextSize(2);
   tft.setCursor(10, 40);
-  tft.println("NO WIFI CONFIG");
+  tft.println("BRAK KONF. WIFI");
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(1);
   tft.setCursor(10, 80);
-  tft.println("Connect AP mode:");
+  tft.println("Polacz sie z siecia AP:");
   tft.setCursor(10, 100);
-  tft.printf("HAMCLOCK-%06X", ESP.getEfuseMac()&0xFFFFFF);
-  tft.setCursor(10, 130);
+  tft.printf("SSID: HAMCLOCK-%06X", ESP.getEfuseMac()&0xFFFFFF);
+  tft.setCursor(10, 115);
+  tft.println("Haslo: (brak - siec otwarta)");
+  tft.setCursor(10, 140);
   tft.println("http://192.168.4.1/config");
   tft.setCursor(10, 200);
-  tft.println("Touch to retry");
 }

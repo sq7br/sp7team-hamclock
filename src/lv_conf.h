@@ -29,6 +29,7 @@
 /*Montserrat fonts with ASCII range and some symbols using bpp = 4
  *https://fonts.google.com/specimen/Montserrat*/
 #define LV_FONT_MONTSERRAT_8     1
+#define LV_FONT_MONTSERRAT_10    1
 #define LV_FONT_MONTSERRAT_14    1
 #define LV_FONT_MONTSERRAT_16    1
 #define LV_FONT_MONTSERRAT_20    0
@@ -38,7 +39,7 @@
 #define LV_FONT_MONTSERRAT_44    1
 
 /*Set LV_FONT_DEFAULT as default font*/
-#define LV_FONT_DEFAULT &lv_font_montserrat_14
+#define LV_FONT_DEFAULT &lv_font_montserrat_10
 
 /****************
  * WIDGETS
